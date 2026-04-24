@@ -6,19 +6,18 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
-
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
 
 @Component
 @Slf4j
@@ -32,14 +31,18 @@ public class FortuneApp {
             "手相方向询问掌纹、生命线、感情线的疑问；" +
             "风水方向询问居家、办公、财位布局的问题；" +
             "流年运势方向询问年度运势、太岁、桃花运的困扰。" +
-            "引导用户详述具体情况、出生年月日时，以便给出专属命理解析与建议。";
+            "引导用户详述具体情况、出生年月日时，以便给出专属命理解析与建议。" +
+            "回答时保持专业、温和，明确区分传统命理参考与现实决策建议，避免绝对化结论。";
 
     public FortuneApp(ChatModel dashscopeChatModel) {
-        ChatMemory chatMemory = new InMemoryChatMemory();
+        MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
+                .chatMemoryRepository(new InMemoryChatMemoryRepository())
+                .maxMessages(20)
+                .build();
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
-                        new MessageChatMemoryAdvisor(chatMemory),
+                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
                         new MyLoggerAdvisor()
                 )
                 .build();
@@ -52,8 +55,7 @@ public class FortuneApp {
         ChatResponse chatResponse = chatClient
                 .prompt()
                 .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
@@ -61,7 +63,19 @@ public class FortuneApp {
         return content;
     }
 
-    record FortuneReport(String title, List<String> suggestions) {
+    /**
+     * AI 基础对话（支持多轮对话记忆，SSE 流式传输）
+     */
+    public Flux<String> doChatByStream(String message, String chatId) {
+        return chatClient
+                .prompt()
+                .user(message)
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                .stream()
+                .content();
+    }
+
+    public record FortuneReport(String title, List<String> suggestions) {
     }
 
     /**
@@ -72,8 +86,7 @@ public class FortuneApp {
                 .prompt()
                 .system(SYSTEM_PROMPT + "每次对话后都要生成命理结果，标题为{用户名}的命理报告，内容为建议列表")
                 .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 .call()
                 .entity(FortuneReport.class);
         log.info("fortuneReport: {}", fortuneReport);
@@ -97,8 +110,7 @@ public class FortuneApp {
         ChatResponse chatResponse = chatClient
                 .prompt()
                 .user(rewrittenMessage)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 .advisors(new MyLoggerAdvisor())
                 .advisors(new QuestionAnswerAdvisor(fortuneAppVectorStore))
 //                .advisors(fortuneAppRagCloudAdvisor)

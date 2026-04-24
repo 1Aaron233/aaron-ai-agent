@@ -1,4 +1,4 @@
-# Aaron AI Agent —— AI 算命大师
+# AI 算命大师
 
 基于 **Spring AI + 阿里云百炼** 构建的 AI 算命应用，支持多轮对话、对话记忆、RAG 知识库问答、结构化输出等核心特性，同时提供多种 AI 调用方式的 Demo 示例，适合作为 Spring AI 入门实战项目。
 
@@ -90,10 +90,10 @@ spring:
 
 阿里云 DashScope API Key 在 [百炼控制台](https://bailian.console.aliyun.com/) 申请，新用户有免费额度。
 
-Demo 测试类还需要在 `TestApiKey.java` 中填入 API Key：
+建议通过环境变量注入，不要把密钥写进代码：
 
-```java
-String API_KEY = "你的阿里云DashScope密钥";
+```bash
+export DASHSCOPE_API_KEY=你的阿里云DashScope密钥
 ```
 
 ### 2. 启动项目
@@ -107,7 +107,24 @@ String API_KEY = "你的阿里云DashScope密钥";
 - 健康检查：`http://localhost:8123/api/health`
 - API 文档：`http://localhost:8123/api/swagger-ui.html`
 
-### 3. 运行测试
+### 3. 启动前端（新增）
+
+前端目录：`fortune-master-frontend`
+
+```bash
+cd fortune-master-frontend
+npm install
+npm run dev
+```
+
+默认访问地址：
+
+- 前端首页：`http://localhost:5173`
+- 算命大师对话页：`http://localhost:5173/fortune-master`
+
+前端会默认请求后端 `http://localhost:8123/api`，项目已补充跨域配置和 SSE 流式聊天接口。
+
+### 4. 运行测试
 
 在 IDE 中直接运行测试类，推荐顺序：
 

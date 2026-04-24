@@ -5,6 +5,5 @@ package com.aaron.aaronaiagent.demo.invoke;
  */
 public interface TestApiKey {
 
-    // 修改为你的 API Key
-    String API_KEY = "your-api-key-here";
+    String API_KEY = System.getenv().getOrDefault("DASHSCOPE_API_KEY", "your-api-key-here");
 }

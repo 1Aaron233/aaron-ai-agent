@@ -1,0 +1,21 @@
+:root {
+  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+  line-height: 1.5;
+  color: #20150d;
+  background:
+    radial-gradient(circle at top, rgba(218, 171, 106, 0.28), transparent 32%),
+    linear-gradient(180deg, #f6efe5 0%, #efe1cb 52%, #e2ccb0 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+textarea {
+  font: inherit;
+}

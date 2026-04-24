@@ -1,6 +1,8 @@
 ### CUSTOM ###
 application-local.yml
 tmp
+node_modules/
+fortune-master-frontend/dist/
 
 HELP.md
 target/
