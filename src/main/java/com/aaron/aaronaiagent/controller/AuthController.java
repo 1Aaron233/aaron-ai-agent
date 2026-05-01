@@ -43,7 +43,6 @@ public class AuthController {
 
     @GetMapping("/menus")
     public ApiResponse<List<MenuResponse>> menus(@AuthenticationPrincipal SecurityUser securityUser) {
-        UserProfileResponse profile = authService.toProfile(securityUser.getSourceUser());
-        return ApiResponse.success(authService.buildMenus(profile));
+        return ApiResponse.success(authService.buildMenus(securityUser.getUserId()));
     }
 }

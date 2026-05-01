@@ -5,6 +5,7 @@ import com.aaron.aaronaiagent.rbac.dto.LoginResponse;
 import com.aaron.aaronaiagent.rbac.dto.MenuResponse;
 import com.aaron.aaronaiagent.rbac.dto.RoleResponse;
 import com.aaron.aaronaiagent.rbac.dto.UserProfileResponse;
+import com.aaron.aaronaiagent.rbac.model.RbacMenu;
 import com.aaron.aaronaiagent.rbac.model.RbacUser;
 import com.aaron.aaronaiagent.security.JwtTokenProvider;
 import com.aaron.aaronaiagent.security.SecurityUser;
@@ -13,7 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AuthService {
@@ -61,34 +64,87 @@ public class AuthService {
 
     public List<AdminUserResponse> listUsers() {
         return rbacUserStore.findAllUsers().stream()
-                .map(user -> new AdminUserResponse(
-                        user.id(),
-                        user.username(),
-                        user.nickname(),
-                        user.status(),
-                        user.roles().stream().map(role -> role.name()).toList()
-                ))
+                .map(this::toAdminUser)
                 .sorted(Comparator.comparing(AdminUserResponse::userId))
                 .toList();
     }
 
     public List<RoleResponse> listRoles() {
         return rbacUserStore.findAllRoles().stream()
-                .map(role -> new RoleResponse(
-                        role.code(),
-                        role.name(),
-                        role.permissions().stream().map(permission -> permission.code()).sorted().toList()
-                ))
+                .map(this::toRoleResponse)
                 .toList();
     }
 
-    public List<MenuResponse> buildMenus(UserProfileResponse profile) {
-        MenuResponse dashboardMenu = new MenuResponse("工作台", "/dashboard", "dashboard:view", List.of());
-        MenuResponse aiMenu = new MenuResponse("AI 对话", "/fortune-master", "ai:chat", List.of());
-        MenuResponse userMenu = new MenuResponse("用户管理", "/dashboard/users", "system:user:list", List.of());
-        MenuResponse roleMenu = new MenuResponse("角色权限", "/dashboard/roles", "system:role:list", List.of());
-        return List.of(dashboardMenu, aiMenu, userMenu, roleMenu).stream()
-                .filter(menu -> profile.permissions().contains(menu.permission()))
-                .toList();
+    public AdminUserResponse toAdminUser(RbacUser user) {
+        return new AdminUserResponse(
+                user.id(),
+                user.username(),
+                user.nickname(),
+                user.status(),
+                user.roles().stream().map(role -> role.code()).toList(),
+                user.roles().stream().map(role -> role.name()).toList()
+        );
+    }
+
+    public RoleResponse toRoleResponse(com.aaron.aaronaiagent.rbac.model.RbacRole role) {
+        return new RoleResponse(
+                role.code(),
+                role.name(),
+                role.permissions().stream().map(permission -> permission.code()).sorted().toList()
+        );
+    }
+
+    public List<MenuResponse> buildMenus(Long userId) {
+        List<RbacMenu> menus = rbacUserStore.findMenusByUserId(userId);
+        Map<Long, MutableMenu> menuMap = new LinkedHashMap<>();
+        List<MutableMenu> roots = new java.util.ArrayList<>();
+
+        for (RbacMenu menu : menus) {
+            MutableMenu current = menuMap.computeIfAbsent(menu.id(), ignored -> new MutableMenu(
+                    menu.id(),
+                    menu.parentId(),
+                    menu.name(),
+                    menu.path(),
+                    menu.permission()
+            ));
+            if (menu.parentId() == null) {
+                if (!roots.contains(current)) {
+                    roots.add(current);
+                }
+                continue;
+            }
+            MutableMenu parent = menuMap.get(menu.parentId());
+            if (parent == null) {
+                parent = new MutableMenu(menu.parentId(), null, "", "", "");
+                menuMap.put(menu.parentId(), parent);
+            }
+            if (!parent.children.contains(current)) {
+                parent.children.add(current);
+            }
+        }
+
+        return roots.stream().map(MutableMenu::toResponse).toList();
+    }
+
+    private static final class MutableMenu {
+
+        private final Long id;
+        private final Long parentId;
+        private final String name;
+        private final String path;
+        private final String permission;
+        private final List<MutableMenu> children = new java.util.ArrayList<>();
+
+        private MutableMenu(Long id, Long parentId, String name, String path, String permission) {
+            this.id = id;
+            this.parentId = parentId;
+            this.name = name;
+            this.path = path;
+            this.permission = permission;
+        }
+
+        private MenuResponse toResponse() {
+            return new MenuResponse(name, path, permission, children.stream().map(MutableMenu::toResponse).toList());
+        }
     }
 }

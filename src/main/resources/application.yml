@@ -3,9 +3,14 @@ spring:
     name: aaron-ai-agent
   profiles:
     active: local
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  datasource:
+    url: ${RBAC_DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${RBAC_DB_USERNAME:postgres}
+    password: ${RBAC_DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always
   ai:
     dashscope:
       api-key: ${DASHSCOPE_API_KEY:your-api-key-here}

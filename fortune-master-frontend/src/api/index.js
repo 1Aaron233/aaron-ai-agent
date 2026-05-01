@@ -55,6 +55,11 @@ export const getProfile = () => http.get('/auth/profile')
 export const getMenus = () => http.get('/auth/menus')
 export const getUsers = () => http.get('/admin/users')
 export const getRoles = () => http.get('/admin/roles')
+export const getPermissions = () => http.get('/admin/permissions')
+export const createUser = (payload) => http.post('/admin/users', payload)
+export const updateUser = (userId, payload) => http.put(`/admin/users/${userId}`, payload)
+export const createRole = (payload) => http.post('/admin/roles', payload)
+export const updateRole = (roleCode, payload) => http.put(`/admin/roles/${roleCode}`, payload)
 
 export const chatWithFortuneApp = (message, chatId) =>
   connectSSE('/ai/fortune_app/chat/sse', { message, chatId })

@@ -5,6 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -16,6 +18,8 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RbacUserStore rbacUserStore;
@@ -32,17 +36,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 Long userId = jwtTokenProvider.parseUserId(token);
-                rbacUserStore.findById(userId).ifPresent(user -> {
-                    SecurityUser securityUser = new SecurityUser(user);
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            securityUser,
-                            null,
-                            securityUser.getAuthorities()
-                    );
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                });
-            } catch (Exception ignored) {
+                rbacUserStore.findById(userId).ifPresentOrElse(user -> {
+                            SecurityUser securityUser = new SecurityUser(user);
+                            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                    securityUser,
+                                    null,
+                                    securityUser.getAuthorities()
+                            );
+                            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+                        },
+                        () -> log.warn("JWT authenticated user id {} was not found in database for request {}", userId, request.getRequestURI())
+                );
+            } catch (Exception exception) {
+                log.warn("JWT authentication failed for request {}: {}", request.getRequestURI(), exception.getMessage(), exception);
                 SecurityContextHolder.clearContext();
             }
         }
