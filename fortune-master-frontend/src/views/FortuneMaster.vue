@@ -6,7 +6,10 @@
         <h1 class="title">AI 算命大师</h1>
         <p class="subtitle">结合多轮对话记忆，先了解你的问题，再给出命理角度的参考分析。</p>
       </div>
-      <div class="chat-id">会话ID: {{ chatId }}</div>
+      <div class="header-meta">
+        <div class="user-badge">{{ authState.user?.nickname }}</div>
+        <div class="chat-id">会话ID: {{ chatId }}</div>
+      </div>
     </header>
 
     <main class="content-wrapper">
@@ -47,6 +50,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useHead } from '@vueuse/head'
 import { useRouter } from 'vue-router'
 import { chatWithFortuneApp } from '../api'
+import { authState } from '../auth'
 import AppFooter from '../components/AppFooter.vue'
 import ChatRoom from '../components/ChatRoom.vue'
 
@@ -111,7 +115,7 @@ const sendMessage = (message) => {
 }
 
 const goBack = () => {
-  router.push('/')
+  router.push('/dashboard')
 }
 
 onMounted(() => {
@@ -167,6 +171,15 @@ onBeforeUnmount(() => {
 .chat-id {
   color: #8b6543;
   font-size: 14px;
+}
+
+.header-meta {
+  text-align: right;
+}
+
+.user-badge {
+  margin-bottom: 6px;
+  color: #6f4729;
 }
 
 .content-wrapper {
@@ -228,7 +241,8 @@ ul {
     grid-template-columns: 1fr;
   }
 
-  .chat-id {
+  .chat-id,
+  .header-meta {
     display: none;
   }
 }

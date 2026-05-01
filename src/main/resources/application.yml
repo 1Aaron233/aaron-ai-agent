@@ -44,3 +44,8 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+app:
+  security:
+    jwt:
+      secret: VGhpc0lzQUNvZGV4RGVtb1NlY3JldEtleUZvckpXVFRva2VuQXV0aA==
+      expire-seconds: 7200

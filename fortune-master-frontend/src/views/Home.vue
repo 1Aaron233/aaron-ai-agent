@@ -1,14 +1,46 @@
 <template>
   <div class="home-container">
+    <header class="topbar">
+      <div class="brand-mark">玄机命阁</div>
+      <div class="topbar-actions">
+        <button
+          v-if="authState.user"
+          type="button"
+          class="secondary-button"
+          @click="navigateTo('/dashboard')"
+        >
+          进入工作台
+        </button>
+        <button
+          v-if="authState.user"
+          type="button"
+          class="ghost-button"
+          @click="handleLogout"
+        >
+          退出登录
+        </button>
+        <button
+          v-else
+          type="button"
+          class="secondary-button"
+          @click="navigateTo('/login')"
+        >
+          RBAC 登录
+        </button>
+      </div>
+    </header>
+
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">玄机命阁</p>
         <h1>AI 算命大师</h1>
         <p class="subtitle">
-          面向命理、手相、风水和流年运势的智能咨询入口，专注提供算命大师式的多轮问答体验。
+          面向命理、手相、风水和流年运势的智能咨询入口，现已接入前后端分离 RBAC 登录、角色与权限控制。
         </p>
         <div class="actions">
-          <button type="button" class="primary-button" @click="navigateTo('/fortune-master')">进入大师对话</button>
+          <button type="button" class="primary-button" @click="navigateTo(authState.user ? '/fortune-master' : '/login')">
+            {{ authState.user ? '进入大师对话' : '登录后使用 AI' }}
+          </button>
         </div>
       </div>
       <div class="hero-panel">
@@ -29,6 +61,7 @@
 <script setup>
 import { useHead } from '@vueuse/head'
 import { useRouter } from 'vue-router'
+import { authState, clearSession } from '../auth'
 import AppFooter from '../components/AppFooter.vue'
 
 useHead({
@@ -46,6 +79,11 @@ const router = useRouter()
 const navigateTo = (path) => {
   router.push(path)
 }
+
+const handleLogout = () => {
+  clearSession()
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -53,6 +91,30 @@ const navigateTo = (path) => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.topbar {
+  width: min(1180px, calc(100% - 32px));
+  margin: 20px auto 0;
+  padding: 16px 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(112, 72, 34, 0.14);
+  background: rgba(255, 249, 241, 0.7);
+  box-shadow: 0 12px 36px rgba(96, 64, 37, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand-mark {
+  color: #704421;
+  letter-spacing: 0.16em;
+  font-size: 13px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 12px;
 }
 
 .hero {
@@ -115,6 +177,23 @@ h1 {
   box-shadow: 0 16px 36px rgba(110, 63, 30, 0.18);
 }
 
+.secondary-button,
+.ghost-button {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+}
+
+.secondary-button {
+  background: rgba(117, 73, 38, 0.1);
+  color: #5b391f;
+}
+
+.ghost-button {
+  background: #6f2f1b;
+  color: #fff6ee;
+}
+
 .hero-panel {
   padding: 34px;
 }
@@ -142,6 +221,12 @@ h1 {
 }
 
 @media (max-width: 860px) {
+  .topbar {
+    width: min(100% - 20px, 1180px);
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .hero {
     grid-template-columns: 1fr;
     padding-top: 36px;
